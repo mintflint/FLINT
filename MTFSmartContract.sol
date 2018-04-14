@@ -108,10 +108,11 @@ contract MTF is ERC20 {
         startTime = 1529798400; //UTC: Sunday 24th June 2018 12:00:00 AM
         endTime = 1533859200; //UTC: Friday 10th August 2018 12:00:00 AM
         paused = false;
+        allocated = false;
     }
-    //To handle ERC20 short address attack
-    modifier onlyPayloadSize(uint size) {
-        require(msg.data.length >= size + 4);
+
+    modifier onlyUnlocked(){
+        require(now >= 1533859200);//GMT: Friday, August 10, 2018 12:00:00 AM
         _;
     }
 
@@ -202,7 +203,7 @@ contract MTF is ERC20 {
     * @param _value the amount of tokens to be transferred
     * @return A bool if the transfer was a success or not
     */
-    function transfer(address _to, uint _value) onlyPayloadSize(2 * 32) public returns(bool _success) {
+    function transfer(address _to, uint _value) public onlyUnlocked returns(bool _success) {
         require( _to != address(0) );
         if((balances[msg.sender] >= _value) && _value > 0 && _to != address(0)){
             balances[msg.sender] = balances[msg.sender].Sub(_value);
@@ -223,7 +224,7 @@ contract MTF is ERC20 {
     * @param _value the amount of tokens to be transferred
     * @return A bool if the transfer was a success or not 
     */
-    function transferFrom(address _from, address _to, uint256 _value) onlyPayloadSize(3*32) public returns (bool){
+    function transferFrom(address _from, address _to, uint256 _value)public onlyUnlocked returns (bool){
         if((_value > 0)
            && (_to != address(0))
            && (_from != address(0))
