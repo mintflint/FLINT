@@ -1,0 +1,18 @@
+{
+  "name": "MINTFLINT_TOKEN",
+  "version": "1.0.0",
+  "description": "MintFlint Token and ICO Smart contract",
+  "main": "index.js",
+  "scripts": {
+    "rpc": "node startRPC.js",
+    "test": "truffle test",
+    "merge": "node node_modules/sol-merger/bin/sol-merger.js './contracts/*.sol' ./merge"
+  },
+  "dependencies": {
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "ganache-cli": "^6.1.0",
+    "openzeppelin-solidity": "^1.9.0",
+    "sol-merger": "^0.1.0"
+  }
+}
