@@ -37,7 +37,7 @@ async function advanceToIcoEnd() {
   await increaseTime(timeDelta);
 }
 
-contract('Alice', function(accounts) {
+contract('MTF', function(accounts) {
   beforeEach(async function () {
     icoStart = currentEvmTime() + 1000;
     icoEnd = currentEvmTime() + 10000;
