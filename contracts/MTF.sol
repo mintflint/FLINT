@@ -1,6 +1,6 @@
 pragma solidity ^0.4.21;
 import './MintableToken.sol';
-import 'openzeppelin-solidity/contracts//ownership/Ownable.sol';
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract MTF is MintableToken, Ownable {
 
