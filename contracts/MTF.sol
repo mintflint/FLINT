@@ -76,7 +76,7 @@ contract MTF is MintableToken, Ownable {
 
         // Receiver2 19.5%
         uint256 part2 = toDistribute.mul(195).div(4000);
-        mint(0x064440197CF23AEFeb0ff972485368a02Bb30625, part2);
+        mint(0xcFc43257606C6a642d9438dCd82bf5b39A17dbAB, part2);
         mint(0x4a8C5Ea0619c40070f288c8aC289ef2f6Bb87cff, part2);
         mint(0x947251376EeAFb0B0CD1bD47cC6056A5162bEaF4, part2);
         mint(0x39A49403eFB1e85F835A9e5dc82706B970D112e4, part2);
