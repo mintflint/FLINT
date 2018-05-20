@@ -30,6 +30,7 @@ contract MTF is MintableToken, Ownable {
 
     //events
     event StateChanged(bool);
+    event TokenPurchase(address indexed beneficiary, uint256 value, uint256 amount);
 
     function MTF(uint256 _startTime, uint256 _endTime) public {
         startTime = _startTime;
@@ -144,6 +145,7 @@ contract MTF is MintableToken, Ownable {
         if (!softCapReached && totalWeiReceived >= softCap) {
             softCapReached = true;
         }
+        emit TokenPurchase(beneficiary, msg.value, tokensBought);
         mint(beneficiary, tokensBought);
         require(totalSupply_ <= maxCap);
     }
