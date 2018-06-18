@@ -53,7 +53,6 @@ contract('MTF', function(accounts) {
     assert.equal(await this.mtf.paused(), false);
     assert.equal(await this.mtf.startTime(), icoStart);
     assert.equal(await this.mtf.endTime(), icoEnd);
-    assert.equal(await this.mtf.softCapReached(), false);
   });
 
   it('Should not allow token purchase before ICO is started', async function () {
@@ -72,10 +71,8 @@ contract('MTF', function(accounts) {
 
     const tokenBalance = await this.mtf.balanceOf(accounts[0]);
     const totalSupply = await this.mtf.totalSupply();
-    const weiReceived = await this.mtf.weiReceived(accounts[0]);
     assert.equal(web3.fromWei(tokenBalance), '100000');
     assert.equal(web3.fromWei(totalSupply), '100000');
-    assert.equal(web3.fromWei(weiReceived), '1');
   });
 
   it('Should allow token transfers only after ICO is finished', async function () {
@@ -91,13 +88,6 @@ contract('MTF', function(accounts) {
 
     await this.mtf.transfer(accounts[1], web3.toWei('1')).should.be.fulfilled;
     await this.mtf.transferFrom(accounts[0], accounts[1], web3.toWei('1'), { from: accounts[1] }).should.be.fulfilled;
-  });
-
-  it('Should set flag when softcap is reached', async function () {
-    await advanceToIcoStart();
-
-    await this.mtf.sendTransaction({value: web3.toWei('50')}).should.be.fulfilled;
-    assert.equal(await this.mtf.softCapReached(), true);
   });
 
   it('Should not allow to exceed hardcap', async function () {
@@ -132,42 +122,7 @@ contract('MTF', function(accounts) {
     await this.mtf.sendTransaction({value: web3.toWei('1')}).should.be.fulfilled;
   });
 
-  it('Should allow to refund when softcap is not reached', async function () {
-    await advanceToIcoStart();
-    await this.mtf.sendTransaction({value: web3.toWei('1')}).should.be.fulfilled;
-
-    // should not allow refund if Sale is not ended yet
-    await this.mtf.refund().should.be.rejectedWith(EVMThrow);
-
-    await advanceToIcoEnd();
-    const balanceBefore = web3.eth.getBalance(accounts[0]);
-
-    // default ganache-cli gas price
-    const gasPrice = web3.toWei('100', 'gwei');
-    const tx = await this.mtf.refund().should.be.fulfilled;
-    const balanceAfter = web3.eth.getBalance(accounts[0]);
-
-    const txFee = web3.toBigNumber(gasPrice).mul(web3.toBigNumber(tx.receipt.gasUsed));
-    // check balance
-    assert.equal(balanceAfter.sub(balanceBefore).add(txFee).toString(), web3.toWei('1'));
-
-    // should not allow to refund again
-    await this.mtf.refund().should.be.rejectedWith(EVMThrow);
-  });
-
-  it('Should not allow to refund when softcap is reached', async function () {
-    await advanceToIcoStart();
-    await this.mtf.sendTransaction({value: web3.toWei('51')}).should.be.fulfilled;
-
-    // should not allow refund if Sale is not ended yet
-    await this.mtf.refund().should.be.rejectedWith(EVMThrow);
-
-    await advanceToIcoEnd();
-    // should not allow to refund
-    await this.mtf.refund().should.be.rejectedWith(EVMThrow);
-  });
-
-  it('Should allow drain when softcap is reached', async function () {
+  it('Should allow drain when ICO ends', async function () {
     await advanceToIcoStart();
     await this.mtf.sendTransaction({value: web3.toWei('51')}).should.be.fulfilled;
 
@@ -188,71 +143,48 @@ contract('MTF', function(accounts) {
     assert.equal(balanceAfter.sub(balanceBefore).add(txFee).toString(), web3.toWei('51'));
   });
 
-  it('Should not allow drain when softcap is not reached', async function () {
-    await advanceToIcoStart();
-    await this.mtf.sendTransaction({value: web3.toWei('49.9')}).should.be.fulfilled;
-
-    // should not allow drain if Sale is not ended yet
-    await this.mtf.drain().should.be.rejectedWith(EVMThrow);
-
-    await advanceToIcoEnd();
-
-    await this.mtf.drain().should.be.rejectedWith(EVMThrow);
-  });
-
   it('Should mint proper token amount to team', async function () {
     await advanceToIcoStart();
     await this.mtf.sendTransaction({value: web3.toWei('15000')}).should.be.fulfilled;
 
     // should not allow allocate until sale ends
-    await this.mtf.teamAllocation().should.be.rejectedWith(EVMThrow);
+    await this.mtf.teamAllocation(accounts[9]).should.be.rejectedWith(EVMThrow);
 
     await advanceToIcoEnd();
 
     // should allow only owner to call it
-    await this.mtf.teamAllocation({ from: accounts[1] }).should.be.rejectedWith(EVMThrow);
+    await this.mtf.teamAllocation(accounts[9], { from: accounts[1] }).should.be.rejectedWith(EVMThrow);
 
-    await this.mtf.teamAllocation().should.be.fulfilled;
+    await this.mtf.teamAllocation(accounts[9]).should.be.fulfilled;
 
     // minting should be finished
     assert.equal(await this.mtf.mintingFinished(), true);
 
     // total supply must be 2.5 bil
-    assert.equal(web3.fromWei(await this.mtf.totalSupply()), '2500000000');
+    assert.equal(web3.fromWei(await this.mtf.totalSupply()), '3175000000');
 
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0xe29C245aB41041aA8BE0ef9F7dF3FFe6fc684b33')), '18750000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0xa35CA6412aDb2458905620C941705EBf74C48533')), '18750000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x33F12B9A7bF9bd9b3F278f418856f6601381551c')), '18750000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x45687dE002ed612CB47FDDd7BA2F289d1d6390eE')), '18750000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x1117Db9F1bf18C91233Bff3BF2676137709463B3')), '22500000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x6C137b489cEE58C32fd8Aec66EAdC4B959550198')), '22500000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x450023b2D943498949f0A9cdb1DbBd827844EE78')), '22500000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x89080db76A555c42D7b43556E40AcaAFeB786CDD')), '22500000');
 
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x064440197CF23AEFeb0ff972485368a02Bb30625')), '121875000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x4a8C5Ea0619c40070f288c8aC289ef2f6Bb87cff')), '121875000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x947251376EeAFb0B0CD1bD47cC6056A5162bEaF4')), '121875000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x39A49403eFB1e85F835A9e5dc82706B970D112e4')), '121875000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0xcFc43257606C6a642d9438dCd82bf5b39A17dbAB')), '146250000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x4a8C5Ea0619c40070f288c8aC289ef2f6Bb87cff')), '146250000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x947251376EeAFb0B0CD1bD47cC6056A5162bEaF4')), '146250000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x39A49403eFB1e85F835A9e5dc82706B970D112e4')), '146250000');
 
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x733bc7201261aC3c9508D20a811D99179304240a')), '50000000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x733bc7201261aC3c9508D20a811D99179304240a')), '60000000');
 
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x4b6716bd349dC65d07152844ed4990C2077cF1a7')), '200000000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x4b6716bd349dC65d07152844ed4990C2077cF1a7')), '540000000');
 
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0xEf628A29668C00d5C7C4D915F07188dC96cF24eb')), '37500000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0xF28a5e85316E0C950f8703e2d99F15A7c077014c')), '37500000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x0c8C9Dcfa4ed27e02349D536fE30957a32b44a04')), '37500000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x0A86174f18D145D3850501e2f4C160519207B829')), '37500000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0xEf628A29668C00d5C7C4D915F07188dC96cF24eb')), '45000000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0xF28a5e85316E0C950f8703e2d99F15A7c077014c')), '45000000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x0c8C9Dcfa4ed27e02349D536fE30957a32b44a04')), '45000000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x0A86174f18D145D3850501e2f4C160519207B829')), '45000000');
 
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x35eeb3216E2Ff669F2c1Ff90A08A22F60e6c5728')), '18750000');
-    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x28dcC9Af670252A5f76296207cfcC29B4E3C68D5')), '18750000');
-  });
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x35eeb3216E2Ff669F2c1Ff90A08A22F60e6c5728')), '22500000');
+    assert.equal(web3.fromWei(await this.mtf.balanceOf('0x28dcC9Af670252A5f76296207cfcC29B4E3C68D5')), '22500000');
 
-  it('Should not allow to call team allocation if soft cap is not reached', async function () {
-    await advanceToIcoStart();
-    await this.mtf.sendTransaction({value: web3.toWei('49')}).should.be.fulfilled;
-
-    // should not allow allocate until sale ends
-    await this.mtf.teamAllocation().should.be.rejectedWith(EVMThrow);
-
-    await advanceToIcoEnd();
-
-    // should allow only owner to call it
-    await this.mtf.teamAllocation().should.be.rejectedWith(EVMThrow);
+    assert.equal(web3.fromWei(await this.mtf.balanceOf(accounts[9])), '175000000');
   });
 });

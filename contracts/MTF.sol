@@ -12,21 +12,17 @@ contract MTF is MintableToken, Ownable {
     //The precision used in the balance calculations in contract
     uint8 public constant decimals = 18;
 
-    uint256 public constant softCap = 50 ether;
     //maximum cap to be sold on ICO
     uint256 public constant maxCap = 1500000000e18;
     //to save total number of ethers received
     uint256 public totalWeiReceived;
 
-    mapping (address => uint256) public weiReceived;
     //time when the sale starts
     uint256 public startTime;
     //time when the presale ends
     uint256 public endTime;
     //to check the sale status
     bool public paused;
-
-    bool public softCapReached;
 
     //events
     event StateChanged(bool);
@@ -37,21 +33,10 @@ contract MTF is MintableToken, Ownable {
         endTime = _endTime;
         paused = false;
         totalSupply_ = 0;
-        softCapReached = false;
     }
 
     modifier whenSaleEnded() {
         require(now >= endTime);
-        _;
-    }
-
-    modifier whenSoftCapReached() {
-        require(softCapReached);
-        _;
-    }
-
-    modifier whenSoftCapNotReached() {
-        require(!softCapReached);
         _;
     }
 
@@ -66,8 +51,8 @@ contract MTF is MintableToken, Ownable {
     /**
      * @dev Allocate tokens to team members
      */
-    function teamAllocation() public onlyOwner whenSaleEnded whenSoftCapReached {
-        uint256 toDistribute = totalSupply_.mul(5).div(3);
+    function teamAllocation(address _airdropAddress) public onlyOwner whenSaleEnded {
+        uint256 toDistribute = totalSupply_.mul(2);
         // Receiver1 3.0%
         uint256 part1 = toDistribute.mul(3).div(400);
         mint(0x1117Db9F1bf18C91233Bff3BF2676137709463B3, part1);
@@ -85,8 +70,8 @@ contract MTF is MintableToken, Ownable {
         // Receiver3 2.0% 0x733bc7201261aC3c9508D20a811D99179304240a
         mint(0x733bc7201261aC3c9508D20a811D99179304240a, toDistribute.mul(2).div(100));
 
-        // Receiver4 8.0% 0x4b6716bd349dC65d07152844ed4990C2077cF1a7
-        mint(0x4b6716bd349dC65d07152844ed4990C2077cF1a7, toDistribute.mul(8).div(100));
+        // Receiver4 18.0% 0x4b6716bd349dC65d07152844ed4990C2077cF1a7
+        mint(0x4b6716bd349dC65d07152844ed4990C2077cF1a7, toDistribute.mul(18).div(100));
 
         // Receiver5 6% 0xEf628A29668C00d5C7C4D915F07188dC96cF24eb
         uint256 part5 = toDistribute.mul(6).div(400);
@@ -100,6 +85,8 @@ contract MTF is MintableToken, Ownable {
         // 0.75% in 0x28dcC9Af670252A5f76296207cfcC29B4E3C68D5
         mint(0x35eeb3216E2Ff669F2c1Ff90A08A22F60e6c5728, toDistribute.mul(75).div(10000));
         mint(0x28dcC9Af670252A5f76296207cfcC29B4E3C68D5, toDistribute.mul(75).div(10000));
+
+        mint(_airdropAddress, 175000000 ether);
 
         finishMinting();
     }
@@ -141,10 +128,6 @@ contract MTF is MintableToken, Ownable {
     function buyTokens(address beneficiary) internal validTimeframe {
         uint256 tokensBought = msg.value.mul(getPrice());
         totalWeiReceived = totalWeiReceived.add(msg.value);
-        weiReceived[beneficiary] = weiReceived[beneficiary].add(msg.value);
-        if (!softCapReached && totalWeiReceived >= softCap) {
-            softCapReached = true;
-        }
         emit TokenPurchase(beneficiary, msg.value, tokensBought);
         mint(beneficiary, tokensBought);
         require(totalSupply_ <= maxCap);
@@ -157,14 +140,7 @@ contract MTF is MintableToken, Ownable {
     /**
     * @dev Failsafe drain.
     */
-    function drain() public onlyOwner whenSaleEnded whenSoftCapReached {
+    function drain() public onlyOwner whenSaleEnded {
         owner.transfer(address(this).balance);
-    }
-
-    function refund() public whenSaleEnded whenSoftCapNotReached {
-        require(weiReceived[msg.sender] > 0);
-        uint256 toTransfer = weiReceived[msg.sender];
-        weiReceived[msg.sender] = 0;
-        msg.sender.transfer(toTransfer);
     }
 }
