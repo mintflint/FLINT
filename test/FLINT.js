@@ -44,7 +44,7 @@ contract('FLINT', function(accounts) {
     await this.flint.mintSpecial(accounts[1], amount).should.be.fulfilled;
     // check the balance of minted address
     let balance = await this.flint.balanceOf(accounts[1]);
-    assert.equal(balance.toString(), balance);
+    assert.equal(balance.toString(), amount);
     let totalSupply = await this.flint.totalSupply();
     // dev fund should receive 21.9152% of new total supply
     let devFundBal = await this.flint.balanceOf(await this.flint.devFund());
@@ -136,5 +136,22 @@ contract('FLINT', function(accounts) {
 
     // should not allow mint after finish
     assert.equal(accounts[1], await this.flint.kiran());
+  });
+
+  it('Should pause', async function () {
+    await this.flint.mintStandard(accounts[0], web3.utils.toWei('100000'));
+    await this.flint.approve(accounts[1], web3.utils.toWei('100000'));
+    // should not allow to call by non-pauser
+    await this.flint.pause({from: accounts[1]}).should.be.rejectedWith(EVMThrow);
+    // should allow pauser to pause
+    await this.flint.pause().should.be.fulfilled;
+    // should disallow transfer when paused
+    await this.flint.transfer(accounts[1], web3.utils.toWei('1')).should.be.rejectedWith(EVMThrow);
+    // should disallow transferFrom when paused
+    await this.flint.transferFrom(accounts[1], accounts[1], web3.utils.toWei('1')).should.be.rejectedWith(EVMThrow);
+    // should disallow mintStandard when paused
+    await this.flint.mintStandard(accounts[0], web3.utils.toWei('100000')).should.be.rejectedWith(EVMThrow);
+    // should disallow mintSpecial when paused
+    await this.flint.mintSpecial(accounts[0], web3.utils.toWei('100000')).should.be.rejectedWith(EVMThrow);
   });
 });

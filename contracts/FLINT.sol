@@ -1,8 +1,9 @@
 pragma solidity ^0.5.0;
 import './MintableToken.sol';
+import 'openzeppelin-solidity/contracts/lifecycle/Pausable.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
-contract FLINT is MintableToken, Ownable {
+contract FLINT is MintableToken, Ownable, Pausable {
 
     using SafeMath for uint256;
     //The name of the  token
@@ -29,12 +30,12 @@ contract FLINT is MintableToken, Ownable {
     }
 
     // Standard mint that doesn't increase the balance of "special" holders
-    function mintStandard(address _to, uint256 _amount) public onlyOwner canMint returns (bool) {
+    function mintStandard(address _to, uint256 _amount) public whenNotPaused onlyOwner canMint returns (bool) {
         return mint(_to, _amount);
     }
 
     // Standard mint that increase the balance of "special" holders according to their total share of FLINT tokens
-    function mintSpecial(address _to, uint256 _amount) public onlyOwner canMint returns (bool) {
+    function mintSpecial(address _to, uint256 _amount) public whenNotPaused onlyOwner canMint returns (bool) {
         // to keep the proper share of special addresses we should calculate the resulting_amount of total supply increase
         // to do this we should mul the amount by 2, total special holders share is 50%, so it's result of equation
         // resulting_amount = _amount + 0,5 * resulting_amount, which turns to resulting_amount = 2 * _amount
@@ -75,5 +76,13 @@ contract FLINT is MintableToken, Ownable {
 
     function setKiran(address _new) public onlyOwner {
         kiran = _new;
+    }
+
+    function transfer(address recipient, uint256 amount) whenNotPaused public returns (bool) {
+        return super.transfer(recipient, amount);
+    }
+
+    function transferFrom(address sender, address recipient, uint256 amount) whenNotPaused public returns (bool) {
+        return super.transferFrom(sender, recipient, amount);
     }
 }
