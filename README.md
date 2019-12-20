@@ -1,4 +1,4 @@
-# MTF
+# FLINT
 
 
 ## Project structure
